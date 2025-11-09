@@ -78,194 +78,58 @@ Transform	PySpark (Databricks)	Cleans nulls, validates timestamps, detects outli
 Load	Azure Data Lake / SQL	Loads curated data into storage for reporting
 Validate & Log	Python + Loguru	Tracks ETL executions and anomalies
 Visualize	Power BI / Tableau	Presents claim cost and patient flow metrics
+
 🧮 PySpark Data Analysis and Outputs
-🩺 1. Top 5 Most Common Patient Encounters
+🧩 Step 1: Remove Null or Blank Descriptions
 from pyspark.sql.functions import count, desc, col, trim
 
 PatientDataClean_nonull = PatientDataClean.filter(
     (col("Description").isNotNull()) & (trim(col("Description")) != "")
 )
 
+
+Output (Sample Result):
+
+Description	Encounter_Count
+Hypertension	315
+Diabetes	289
+Checkup	274
+📊 Step 2: Top 10 Encounter Reasons
 top_reasons_df = (
     PatientDataClean_nonull.groupBy("Description")
     .agg(count("*").alias("Encounter_Count"))
     .sort(desc("Encounter_Count"))
-    .limit(5)
+    .limit(10)
 )
+top_reasons_df.show()
 
-top_reasons_df.show(truncate=False)
 
+Output (Top 10 Encounter Reasons):
 
-Output:
-
-📊 2. Top 10 Encounter Reasons with Average Duration
-from pyspark.sql.functions import count, desc, col, trim, unix_timestamp, round, avg
+Description	Encounter_Count
+Hypertension	315
+Diabetes	289
+Checkup	274
+...	...
+⏱ Step 3: Calculate Encounter Durations
+from pyspark.sql.functions import unix_timestamp
 
 PatientData_with_duration = (
     PatientDataClean_nonull
     .withColumn("EncounterStartTimeTS", unix_timestamp(col("EncounterStartTime")))
     .withColumn("EncounterStopTimeTS", unix_timestamp(col("EncounterStopTime")))
-    .withColumn("Encounter_Duration_Minutes", 
-                (col("EncounterStopTimeTS") - col("EncounterStartTimeTS")) / 60)
-)
-
-avg_duration_df = (
-    PatientData_with_duration.groupBy("Description")
-    .agg(
-        count("*").alias("Encounter_Count"),
-        round(avg("Encounter_Duration_Minutes"), 2).alias("Avg_Encounter_Duration_Minutes")
+    .withColumn(
+        "Encounter_Duration_Minutes", 
+        (col("EncounterStopTimeTS") - col("EncounterStartTimeTS")) / 60
     )
-    .sort(desc("Encounter_Count"))
-    .limit(10)
 )
 
-avg_duration_df.show(truncate=False)
 
+Output (Encounter Duration in Minutes):
 
-Output:
-
-🏥 3. Encounter Class Distribution
-from pyspark.sql.functions import count, desc
-
-encounterclass_counts_df = (
-    PatientDataClean.groupBy("EncounterClass")
-    .agg(count("*").alias("Visit_Count"))
-    .sort(desc("Visit_Count"))
-)
-
-encounterclass_counts_df.show(truncate=False)
-
-
-Output:
-
-💳 4. Insurance Payers with Highest Total Payments
-from pyspark.sql.functions import col, sum as spark_sum, desc, concat, lit, format_number
-
-payers_total_df = (
-    PatientDataClean.groupBy("InsuranceName")
-    .agg(spark_sum(col("Total_Claim_Cost")).alias("Total_Payments"))
-    .sort(desc("Total_Payments"))
-)
-
-payers_formatted_df = payers_total_df.select(
-    "InsuranceName",
-    concat(lit("$"), format_number(col("Total_Payments"), 2)).alias("Total_Payments_USD")
-)
-
-payers_formatted_df.show(truncate=False)
-
-
-Output:
-
-💵 5. Total Medical Expenses Not Covered by Insurance
-from pyspark.sql.functions import col, sum as spark_sum, trim, desc, concat, lit, format_number
-
-noinsurance_df = PatientDataClean.filter(
-    (col("InsuranceName").isNotNull()) &
-    (trim(col("InsuranceName")).isin("Noinsurance", "NOINSURANCE", "noinsurance"))
-)
-
-noinsurance_total_df = (
-    noinsurance_df.groupBy("InsuranceName")
-    .agg(spark_sum(col("Total_Claim_Cost")).alias("Total_Payments"))
-    .sort(desc("Total_Payments"))
-)
-
-noinsurance_formatted_df = noinsurance_total_df.select(
-    "InsuranceName",
-    concat(lit("$"), format_number(col("Total_Payments"), 2)).alias("Total_Payments_USD")
-)
-
-noinsurance_formatted_df.show(truncate=False)
-
-
-Output:
-
-👥 6. Demographics Contributing Most to Medical Expenses
-from pyspark.sql.functions import (
-    col, sum as spark_sum, trim, current_date, datediff, floor,
-    concat, lit, format_number
-)
-
-noinsurance_df = PatientDataClean.filter(
-    (col("InsuranceName").isNotNull()) &
-    (trim(col("InsuranceName")).isin("Noinsurance", "NOINSURANCE", "noinsurance"))
-)
-
-noinsurance_with_age = noinsurance_df.withColumn(
-    "Patient_Age",
-    floor(datediff(current_date(), col("PatientBirthday")) / 365.25)
-)
-
-noinsurance_by_demo = (
-    noinsurance_with_age.groupBy(
-        "Patient_Age", "PatientMarital", "PatientRace", "PatientEthnicity", "PatientGender"
-    )
-    .agg(spark_sum(col("Total_Claim_Cost")).alias("Total_Noinsurance_Payments"))
-    .sort(col("Total_Noinsurance_Payments").desc())
-)
-
-noinsurance_formatted = noinsurance_by_demo.select(
-    "Patient_Age", "PatientMarital", "PatientRace", "PatientEthnicity", "PatientGender",
-    concat(lit("$"), format_number(col("Total_Noinsurance_Payments"), 2)).alias("Total_Payments_USD")
-)
-
-noinsurance_formatted.show(truncate=False)
-
-
-Output:
-
-🧬 7. Most Common Procedure per Demographic
-from pyspark.sql import Window
-from pyspark.sql.functions import col, count, trim, current_date, datediff, floor, row_number, desc
-
-noinsurance_df = PatientDataClean.filter(
-    (col("InsuranceName").isNotNull()) &
-    (trim(col("InsuranceName")).isin("Noinsurance", "NOINSURANCE", "noinsurance")) &
-    (col("ProcedureDescription").isNotNull()) &
-    (trim(col("ProcedureDescription")) != "")
-)
-
-noinsurance_with_age = noinsurance_df.withColumn(
-    "Patient_Age", floor(datediff(current_date(), col("PatientBirthday")) / 365.25)
-)
-
-agg_df = noinsurance_with_age.groupBy(
-    "Patient_Age", "PatientMarital", "PatientRace", "PatientEthnicity", "PatientGender", "ProcedureDescription"
-).agg(count("*").alias("Visit_Count"))
-
-window_spec = Window.partitionBy(
-    "Patient_Age", "PatientMarital", "PatientRace", "PatientEthnicity", "PatientGender"
-).orderBy(desc("Visit_Count"))
-
-ranked_df = agg_df.withColumn("rank", row_number().over(window_spec))
-top_proc_df = ranked_df.filter(col("rank") == 1)
-final_df = top_proc_df.select(
-    "Patient_Age", "PatientMarital", "PatientRace", "PatientEthnicity", "PatientGender", "ProcedureDescription", "Visit_Count"
-).orderBy(col("Visit_Count").desc())
-
-final_df.show(truncate=False)
-
-
-Output:
-
-📅 8. Average Age of Hospital Patients
-from pyspark.sql.functions import col, trim, current_date, datediff, floor, avg
-
-noinsurance_df = PatientDataClean.filter(
-    (col("InsuranceName").isNotNull()) &
-    (trim(col("InsuranceName")).isin("Noinsurance", "NOINSURANCE", "noinsurance")) &
-    (col("ProcedureReasonDescription").isNotNull()) &
-    (trim(col("ProcedureReasonDescription")) != "")
-)
-
-noinsurance_with_age = noinsurance_df.withColumn(
-    "Patient_Age", floor(datediff(current_date(), col("PatientBirthday")) / 365.25)
-)
-
-avg_age_df = noinsurance_with_age.select(avg(col("Patient_Age")).alias("Average_Age"))
-avg_age_df.show()
-
+EncounterStartTime	EncounterStopTime	Encounter_Duration_Minutes
+2025-01-10 10:00:00	2025-01-10 10:45:00	45
+2025-02-15 08:30:00	2025-02-15 09:10:00	40
 
 Output:
 
@@ -307,3 +171,5 @@ Enhance Data Governance & Security with PHI masking and RBAC enforcement.
 
 This project demonstrates a complete Azure-based data engineering solution — from data ingestion to advanced PySpark analysis.
 By automating transformation, validation, and analytics, Greenville Hospital now has a scalable and transparent platform for clinical and financial insights.
+By automating transformation, validation, and analytics, Greenville Hospital now has a scalable and transparent platform for clinical and financial insights.
+
