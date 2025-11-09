@@ -1,279 +1,217 @@
-# 🏥 **Greenville Hospital Data Engineering ETL Project**
+🏥 Greenville Hospital Patient Records Data Engineering Project
+📘 Project Overview
 
----
+Greenville Hospital stores unclean patient record CSV data in Azure Blob Storage.
+This project designs a complete Azure Data Engineering pipeline to ingest, clean, transform, and analyze that data using:
 
-## 💡 **Project Overview**
+Azure Data Factory (ADF) for ETL orchestration
 
-The **Greenville Hospital ETL Project** automates the ingestion, cleaning, transformation, and analysis of patient medical data.  
-The hospital stores **unclean CSV data** from an API into an **Azure Storage Blob**.  
-An **Azure Data Factory (ADF) pipeline** extracts this data, cleans and standardizes it using a **Data Flow**, and then loads the cleaned data into a **separate blob container**.  
-The cleaned data is then connected to **Azure Databricks** for quality checks, analytics, and insights — before being stored in **Azure SQL Database** for long-term storage and BI reporting.
+Azure Blob Storage for raw and clean data zones
 
----
+Azure Databricks (PySpark) for data validation and analytics
 
-## 🧩 **Data Flow Architecture**
+Azure SQL Database for final structured storage
 
-### **ETL Pipeline Overview**
+💼 Business Purpose
 
-![Data Flow Architecture](Azure/PatientRecords%20DataFlow%20Overview.jpg)
+Greenville Hospital wanted to:
 
-**Step-by-step process:**
-1. **Ingest Unclean Patient Records** → from Azure Blob Storage into Azure Data Factory  
-2. **Transform Data** → clean, normalize, standardize columns using ADF Data Flows  
-3. **Load Clean Data** → store cleaned data into a new Azure Blob Storage container  
-4. **Analyze** → connect to Databricks for further transformation, validation, and insights  
+Understand patient encounter patterns and insurance payer performance
 
----
+Reduce reporting latency caused by messy raw CSV data from APIs
 
-## ⚙️ **ETL Workflow Breakdown**
+Centralize data into Azure SQL for BI tools (Power BI, Tableau)
 
-| ETL Phase | Tool Used | Description |
-|------------|------------|-------------|
-| **Extract** | Azure Data Factory | Ingests unclean patient CSV data from Azure Blob Storage. |
-| **Transform** | ADF Data Flow | Applies column renaming, type conversion, special character removal, and joins multiple datasets into one unified table. |
-| **Load** | Azure Blob Storage (clean container) | Stores the transformed data for analytical use. |
-| **Analyze** | Azure Databricks (PySpark) | Performs data validation, outlier detection, and demographic analysis. |
-| **Store** | Azure SQL Database | Final clean dataset is loaded into `[dbo].[Patient_Medical_Records]` for BI & reporting. |
+Identify high-cost demographics, average encounter durations, and uninsured financial exposure
 
----
+By modernizing its data pipeline on Azure, Greenville Hospital gained automated, reliable insights into patient operations and billing.
 
-## 🎯 **Business Purpose**
+⚙️ ETL Breakdown
+Phase	Tool	Key Steps
+Extract	Azure Data Factory	Ingest raw CSVs from Blob Storage (raw/ container)
+Transform	ADF Data Flow	Select, derive, clean special chars, cast types, standardize dates, join datasets
+Load	ADF → Azure Blob Storage	Write cleaned data to clean/ container
+Analyze	Azure Databricks (PySpark)	Validate schema + outliers, perform analytics, load final results to Azure SQL Database
+🧱 Data Flow Architecture
 
-The purpose of this project is to help **Greenville Hospital** gain insights into:
+Workflow Summary
 
-- The most common patient encounters and their durations  
-- The demographics of patients and insurance coverage patterns  
-- Total medical costs by payer and uninsured patients  
-- The average age and encounter patterns of visitors  
+Unclean Data Storage → Azure Blob Storage (raw/)
 
-By automating this data pipeline, Greenville Hospital improves **billing accuracy**, **resource planning**, and **patient service efficiency**.
+ADF Pipeline → Cleans, standardizes, and joins CSVs
 
----
+Clean Data Storage → Azure Blob Storage (clean/)
 
-## 🔍 **Data Quality & Analysis (Azure Databricks)**
+Azure Databricks → Performs quality checks and analytics
 
-Below are the **PySpark analysis scripts** used in Databricks, along with their corresponding **outputs** and **insights**.
+Azure SQL Database → Final clean dataset loaded into [dbo].[Patient_Medical_Records]
 
----
+🧩 Data Flow in Azure Data Factory
+Step	Transformation	Purpose
+Source	Reads CSV files from unclean Blob Storage	Raw input ingestion
+Select	Chooses only relevant patient columns	Reduces schema complexity
+Derived Column	Fixes column names, types, and formats	Cleanses data
+Join	Combines multiple related CSVs	Creates unified dataset
+Sink	Writes clean data to new Blob Storage	Outputs transformed dataset
+🧪 PySpark Analysis & Results
 
-### 🩺 **1. Top 5 Most Common Patient Encounters**
+Below are the analysis questions and corresponding PySpark code and outputs executed in Azure Databricks.
 
-```python
+1️⃣ Top 5 Most Common Patient Encounters
 from pyspark.sql.functions import count, desc, col, trim
 
 PatientDataClean_nonull = PatientDataClean.filter(
     (col("Description").isNotNull()) & (trim(col("Description")) != "")
 )
-
 top_reasons_df = (
     PatientDataClean_nonull.groupBy("Description")
     .agg(count("*").alias("Encounter_Count"))
     .sort(desc("Encounter_Count"))
     .limit(5)
 )
-
 top_reasons_df.show(truncate=False)
-Output:
 
-Description	Encounter_Count
-Encounter For Problem Procedure	1446
-Urgent Care Clinic Procedure	1132
-Encounter For Check Up Procedure	1130
-General Examination Of Patient Procedure	981
-Telemedicine Consultation With Patient	680
 
-🕒 2. Average Duration of Top 10 Encounters
-python
-Copy code
+2️⃣ Average Duration of Top 10 Encounters
 from pyspark.sql.functions import unix_timestamp, avg
-
 PatientData_with_duration = (
     PatientDataClean_nonull
-    .withColumn("EncounterStartTimeTS", unix_timestamp(col("EncounterStartTime")))
-    .withColumn("EncounterStopTimeTS", unix_timestamp(col("EncounterStopTime")))
-    .withColumn("Encounter_Duration_Minutes", 
-                (col("EncounterStopTimeTS") - col("EncounterStartTimeTS")) / 60)
+    .withColumn("EncounterStartTS", unix_timestamp(col("EncounterStartTime")))
+    .withColumn("EncounterStopTS", unix_timestamp(col("EncounterStopTime")))
+    .withColumn("Encounter_Duration_Minutes",
+                (col("EncounterStopTS") - col("EncounterStartTS")) / 60)
 )
-
 avg_duration_df = (
     PatientData_with_duration.groupBy("Description")
     .agg(count("*").alias("Encounter_Count"),
-         avg(col("Encounter_Duration_Minutes")).alias("Avg_Encounter_Duration_Minutes"))
+         avg("Encounter_Duration_Minutes").alias("Avg_Encounter_Duration_Minutes"))
     .sort(desc("Encounter_Count"))
     .limit(10)
 )
-
 avg_duration_df.show(truncate=False)
-Output:
 
-Description	Encounter_Count	Avg_Encounter_Duration_Minutes
-Encounter For Problem Procedure	1446	102.46
-Urgent Care Clinic Procedure	1132	11.99
-Encounter For Check Up Procedure	1130	13.89
-General Examination Of Patient Procedure	981	14.59
-Telemedicine Consultation With Patient	680	12.90
 
-💰 3. Encounter Classes for Uninsured Patients
-python
-Copy code
+3️⃣ Encounter Classification by Visit Count (No Insurance)
 from pyspark.sql.functions import col, count, trim, desc
-
 noinsurance_df = PatientDataClean.filter(
     (col("InsuranceName").isNotNull()) &
     (trim(col("InsuranceName")).isin("Noinsurance", "NOINSURANCE", "noinsurance")) &
-    (col("EncounterClass").isNotNull()) &
-    (trim(col("EncounterClass")) != "")
+    (col("EncounterClass").isNotNull()) & (trim(col("EncounterClass")) != "")
 )
-
 encounterclass_counts_df = (
     noinsurance_df.groupBy("EncounterClass")
     .agg(count("*").alias("Visit_Count"))
     .sort(desc("Visit_Count"))
 )
-
 encounterclass_counts_df.show(truncate=False)
-Output:
 
-EncounterClass	Visit_Count
-Ambulatory	1376
-Outpatient	952
-Urgentcare	590
-Wellness	418
-Emergency	211
-Inpatient	137
 
-🏦 4. Top 3 Insurance Payers by Total Payments
-python
-Copy code
-from pyspark.sql.functions import sum as spark_sum, format_number, concat, lit
-
+4️⃣ Top 3 Payers by Total Payments
+from pyspark.sql.functions import sum as spark_sum, desc, trim, concat, lit, format_number
+PatientDataClean_nonull_payers = PatientDataClean.filter(
+    (col("InsuranceName").isNotNull()) & (trim(col("InsuranceName")) != "") &
+    (trim(col("InsuranceName")) != "Noinsurance")
+)
 payers_total_df = (
-    PatientDataClean.filter(
-        (col("InsuranceName").isNotNull()) &
-        (trim(col("InsuranceName")) != "") &
-        (trim(col("InsuranceName")) != "Noinsurance")
-    )
-    .groupBy("InsuranceName")
+    PatientDataClean_nonull_payers.groupBy("InsuranceName")
     .agg(spark_sum(col("Total_Claim_Cost")).alias("Total_Payments"))
     .sort(desc("Total_Payments"))
     .limit(3)
 )
-
 payers_formatted_df = payers_total_df.select(
-    "InsuranceName",
+    col("InsuranceName"),
     concat(lit("$"), format_number(col("Total_Payments"), 2)).alias("Total_Payments_USD")
 )
-
 payers_formatted_df.show(truncate=False)
-Output:
 
-InsuranceName	Total_Payments_USD
-Unitedhealthcare	$17,287,483.78
-Medicare	$3,498,745.36
-Humana	$124,356.94
 
-🧾 5. Total Expenses Not Covered by Insurance
-python
-Copy code
-noinsurance_formatted_df = (
-    PatientDataClean.filter(
-        (col("InsuranceName").isNotNull()) &
-        (trim(col("InsuranceName")).isin("Noinsurance", "NOINSURANCE", "noinsurance"))
-    )
-    .groupBy("InsuranceName")
-    .agg(spark_sum(col("Total_Claim_Cost")).alias("Total_Payments"))
-    .select(
-        "InsuranceName",
-        concat(lit("$"), format_number(col("Total_Payments"), 2)).alias("Total_Payments_USD")
-    )
-)
-
-noinsurance_formatted_df.show(truncate=False)
-Output:
-
-InsuranceName	Total_Payments_USD
-Noinsurance	$10,915,952.23
-
-👥 6. Demographics Paying the Most
-python
-Copy code
-from pyspark.sql.functions import current_date, datediff, floor
-
-noinsurance_with_age = PatientDataClean.filter(
+5️⃣ Total Uninsured Medical Expenses
+noinsurance_df = PatientDataClean.filter(
     (col("InsuranceName").isNotNull()) &
     (trim(col("InsuranceName")).isin("Noinsurance", "NOINSURANCE", "noinsurance"))
-).withColumn(
+)
+noinsurance_total_df = (
+    noinsurance_df.groupBy("InsuranceName")
+    .agg(spark_sum(col("Total_Claim_Cost")).alias("Total_Payments"))
+)
+noinsurance_formatted_df = noinsurance_total_df.select(
+    col("InsuranceName"),
+    concat(lit("$"), format_number(col("Total_Payments"), 2)).alias("Total_Payments_USD")
+)
+noinsurance_formatted_df.show(truncate=False)
+
+
+6️⃣ Demographics Paying Most ( No Insurance )
+from pyspark.sql.functions import floor, current_date, datediff
+noinsurance_with_age = noinsurance_df.withColumn(
     "Patient_Age",
     floor(datediff(current_date(), col("PatientBirthday")) / 365.25)
 )
-
 noinsurance_by_demo = (
     noinsurance_with_age.groupBy(
-        "Patient_Age", "PatientMarital", "PatientRace", "PatientEthnicity", "PatientGender"
+        "Patient_Age","PatientMarital","PatientRace","PatientEthnicity","PatientGender"
     )
     .agg(spark_sum(col("Total_Claim_Cost")).alias("Total_Noinsurance_Payments"))
     .sort(col("Total_Noinsurance_Payments").desc())
 )
 
-noinsurance_by_demo.show(truncate=False)
-Output:
 
-Patient_Age	Marital	Race	Ethnicity	Gender	Total_Payments_USD
-64	M	Black	Hispanic	F	$9,555,786.36
-102	S	White	Nonhispanic	M	$398,277.30
-92	M	White	Nonhispanic	F	$308,119.68
-
-🧮 7. Most Common Procedure per Demographic
-python
-Copy code
+7️⃣ Most Common Procedure per Demographic
 from pyspark.sql import Window
-from pyspark.sql.functions import count, row_number, desc
-
-agg_df = (
-    noinsurance_with_age.groupBy(
-        "Patient_Age", "PatientMarital", "PatientRace", "PatientEthnicity", "PatientGender", "ProcedureDescription"
-    )
-    .agg(count("*").alias("Visit_Count"))
-)
-
+from pyspark.sql.functions import row_number, desc
+agg_df = noinsurance_with_age.groupBy(
+    "Patient_Age","PatientMarital","PatientRace","PatientEthnicity","PatientGender","ProcedureDescription"
+).agg(count("*").alias("Visit_Count"))
 window_spec = Window.partitionBy(
-    "Patient_Age", "PatientMarital", "PatientRace", "PatientEthnicity", "PatientGender"
+    "Patient_Age","PatientMarital","PatientRace","PatientEthnicity","PatientGender"
 ).orderBy(desc("Visit_Count"))
-
-top_proc_df = agg_df.withColumn("rank", row_number().over(window_spec)).filter(col("rank") == 1)
-
+ranked_df = agg_df.withColumn("rank", row_number().over(window_spec))
+top_proc_df = ranked_df.filter(col("rank") == 1)
 top_proc_df.show(truncate=False)
-Output:
 
-Patient_Age	Race	Ethnicity	Gender	ProcedureDescription	Visit_Count
-64	Black	Hispanic	F	Renal Dialysis Procedure	2622
-94	White	Nonhispanic	F	Chemotherapy and Radiation	30
 
-📊 8. Average Age of Patients
-python
-Copy code
+8️⃣ Average Age of Uninsured Patients
 from pyspark.sql.functions import avg
 avg_age_df = noinsurance_with_age.select(avg(col("Patient_Age")).alias("Average_Age"))
 avg_age_df.show()
-Output:
 
-Average_Age
-89.5
 
-🗄️ Azure SQL Database Integration
-The final clean dataset (PatientDataClean) is stored in Azure SQL Database under:
-[dbo].[Patient_Medical_Records].
+🧾 Azure SQL Database Verification
 
+Clean data successfully loaded into:
+Server: medical-records.database.windows.net
+Database: Patient_Records
+Table: [dbo].[Patient_Medical_Records]
+
+SELECT TOP (1000)
+ [PatientID],[PatientFirstName],[PatientLastName],
+ [PatientCity],[PatientState],
+ [EncounterStartTime],[EncounterStopTime],
+ [ProcedureDescription],[InsuranceName],[Total_Claim_Cost]
+FROM [Patient_Records].[dbo].[Patient_Medical_Records];
+
+
+📊 Insights Summary
+Metric	Key Finding
+Most Common Encounter	Encounter for Problem Procedure
+Longest Encounter Type	Problem Procedure (~102 min avg)
+Top Payers	UnitedHealthcare, Medicare, Humana
+Uninsured Cost	$10.9 million
+Average Age (Uninsured)	89.5 years
+Frequent Encounter Classes	Ambulatory, Outpatient, UrgentCare
 🪲 Issues and Challenges Faced
-#	Issue	Description	Solution
-1	Databricks → SQL Authentication Failure	Encountered “Login failed for user <token-identified principal>” during AAD authentication.	Created SQL login databricks_loader with db_owner privileges and switched to username/password auth.
-2	ADF Dataflow Column Type Errors	Some columns mismatched due to inconsistent source schema.	Used Derived Column transformations to explicitly cast to correct types.
-3	Special Characters in Names	Names like O’Hara and García contained non-ASCII characters.	Cleaned strings using regex in both ADF and Databricks.
-4	Databricks IP Firewall Blocked	Could not connect to SQL Server from Databricks.	Added Databricks IP 172.202.17.203 to SQL firewall & enabled “Allow Azure Services”.
-5	Missing Date or ID Fields	Null PatientID or DOB caused join mismatches.	Filtered invalid rows before merge and logged counts.
+Issue	Description	Solution
+1. Databricks → SQL Authentication Failure	Encountered “Login failed for user <token-identified principal>” during AAD authentication.	Created SQL login databricks_loader with db_owner privileges and switched to username/password auth.
+2. ADF Dataflow Column Type Errors	Columns mismatched due to inconsistent source schema.	Used Derived Column transformations to explicitly cast types.
+3. Special Characters in Names (O’Hara, García)	Non-ASCII characters appeared in patient name columns.	Applied regex-based cleaning in ADF and Databricks with regexp_replace().
+4. Databricks IP Firewall Blocked	Could not connect to SQL Server from Databricks.	Added Databricks public IP (172.202.17.203) to SQL Server firewall and enabled “Allow Azure Services”.
+5. Missing Date or ID Fields	Null IDs and DOBs caused join mismatches.	Filtered invalid rows and logged record counts before and after cleaning.
 
-👤 Author
-Niam Dickerson
-📧 niam_dataengineer@yahoo.com
-💻 GitHub: @niampython
 
+✅ Next Steps:
+
+Add this README and screenshots to your project root.
+
+Push to GitHub (Greenville-Hospital-ETL-Project).
+
+Optionally include your ADF JSON exports under /adf_pipelines/.
