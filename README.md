@@ -1,59 +1,64 @@
-🏥 Greenville Hospital Patient Records Data Engineering Project
+Greenville Hospital ETL Project
 📘 Project Overview
 
-Greenville Hospital stores unclean patient record CSV data in Azure Blob Storage.
-This project designs a complete Azure Data Engineering pipeline to ingest, clean, transform, and analyze that data using:
+This project focuses on building a robust ETL (Extract, Transform, Load) data pipeline for patient records using Azure services — including Azure Blob Storage, Azure Data Factory, and Azure Databricks.
 
-Azure Data Factory (ADF) for ETL orchestration
-
-Azure Blob Storage for raw and clean data zones
-
-Azure Databricks (PySpark) for data validation and analytics
-
-Azure SQL Database for final structured storage
+The goal is to ingest raw healthcare data, clean and transform it into standardized formats, and load it back into storage for analytical insights such as top insurance payers, procedure costs, and patient demographics.
 
 💼 Business Purpose
 
-Greenville Hospital wanted to:
+Hospitals often store patient data in multiple systems with inconsistent formats and incomplete fields.
+This project helps solve the following business challenges:
 
-Understand patient encounter patterns and insurance payer performance
+Automates the data ingestion and transformation process.
 
-Reduce reporting latency caused by messy raw CSV data from APIs
+Improves data quality through cleaning, normalization, and validation.
 
-Centralize data into Azure SQL for BI tools (Power BI, Tableau)
+Enables real-time analytics for hospital administrators and stakeholders.
 
-Identify high-cost demographics, average encounter durations, and uninsured financial exposure
+Provides visibility into cost trends, procedure frequencies, and insurance coverage.
 
-By modernizing its data pipeline on Azure, Greenville Hospital gained automated, reliable insights into patient operations and billing.
+🧱 Data Architecture Flow
 
-⚙️ ETL Breakdown
-Phase	Tool	Key Steps
-Extract	Azure Data Factory	Ingest raw CSVs from Blob Storage (raw/ container)
-Transform	ADF Data Flow	Select, derive, clean special chars, cast types, standardize dates, join datasets
-Load	ADF → Azure Blob Storage	Write cleaned data to clean/ container
-Analyze	Azure Databricks (PySpark)	Validate schema + outliers, perform analytics, load final results to Azure SQL Database
-🧱 Data Flow Architecture
+The data architecture integrates multiple Azure components to streamline the ETL lifecycle:
 
-Workflow Summary
+<p align="center"> <img src="aec98b5c-eb6a-4107-ab7f-d3d159a77d21.png" alt="ETL Data Flow Architecture" width="800"/> </p>
+⚙️ ETL Workflow Summary
+1️⃣ Extract
 
-Unclean Data Storage → Azure Blob Storage (raw/)
+Unclean patient record data is ingested from Azure Blob Storage (CSV/Parquet format).
 
-ADF Pipeline → Cleans, standardizes, and joins CSVs
+Data Factory triggers ingestion pipelines.
 
-Clean Data Storage → Azure Blob Storage (clean/)
+2️⃣ Transform
 
-Azure Databricks → Performs quality checks and analytics
+Azure Data Factory performs:
 
-Azure SQL Database → Final clean dataset loaded into [dbo].[Patient_Medical_Records]
+Data type correction
 
-🧩 Data Flow in Azure Data Factory
-Step	Transformation	Purpose
-Source	Reads CSV files from unclean Blob Storage	Raw input ingestion
-Select	Chooses only relevant patient columns	Reduces schema complexity
-Derived Column	Fixes column names, types, and formats	Cleanses data
-Join	Combines multiple related CSVs	Creates unified dataset
-Sink	Writes clean data to new Blob Storage	Outputs transformed dataset
-🧪 PySpark Analysis & Results
+Null value filtering
+
+Column renaming and standardization
+
+Format normalization
+
+3️⃣ Load
+
+Clean and transformed data is reloaded back into Azure Blob Storage (Cleaned Zone).
+
+The cleaned dataset is then connected to Azure Databricks for analysis.
+
+4️⃣ Analyze
+
+Databricks notebooks run PySpark transformations to derive insights on:
+
+Patient demographics
+
+Encounter durations
+
+Top payers and procedure costs
+
+Outlier detection and missing data validation
 
 Below are the analysis questions and corresponding PySpark code and outputs executed in Azure Databricks.
 
