@@ -45,7 +45,7 @@ This project ensures high-quality, consistent data for:
 
 ## 🗺️ **Data Architecture Flow**
 
-![Data Architecture Flow](aec98b5c-eb6a-4107-ab7f-d3d159a77d21.png)
+Data Architecture Flow.jpg
 
 ---
 
