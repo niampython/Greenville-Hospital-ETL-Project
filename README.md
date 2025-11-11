@@ -45,7 +45,7 @@ This project ensures high-quality, consistent data for:
 
 ## 🗺️ **Data Architecture Flow**
 
-Data Architecture Flow.jpg
+![Data Architecture Flow](images/data_architecture_flow.jpg)
 
 ---
 
@@ -73,7 +73,7 @@ top_reasons_df.show(truncate=False)
 ```
 
 **Output:**  
-![](1cd2056c-29e9-43d2-ab19-b1d1a8327133.png)
+![pyspark output1](images/pyspark%20output1.jpg)
 
 ---
 
@@ -120,7 +120,7 @@ avg_duration_df.show(truncate=False)
 ```
 
 **Output:**  
-![](c5e825eb-c7dd-44f5-96af-a456217a2004.png)
+![pyspark output2](images/pyspark%20output2.jpg)
 
 ---
 
@@ -146,7 +146,7 @@ encounterclass_counts_df.show(truncate=False)
 ```
 
 **Output:**  
-![](678ca530-3f37-42fb-8ccd-afdd0abd8168.png)
+![pyspark output3](images/pyspark%20output3.jpg)
 
 ---
 
@@ -177,7 +177,7 @@ payers_formatted_df.show(truncate=False)
 ```
 
 **Output:**  
-![](dc06f32e-f6fc-460d-a4e1-516310ff42b4.png)
+![pyspark output4](images/pyspark%20output4.jpg)
 
 ---
 
@@ -206,7 +206,7 @@ noinsurance_formatted_df.show(truncate=False)
 ```
 
 **Output:**  
-![](194c6e32-227f-4a07-9ead-140eeabd497b.png)
+![pyspark output5](images/pyspark%20output5.jpg)
 
 ---
 
@@ -249,7 +249,7 @@ noinsurance_formatted.show(truncate=False)
 ```
 
 **Output:**  
-![](000746bc-0162-4392-81a2-5db173df888f.png)
+![pyspark output6](images/pyspark%20output6.jpg)
 
 ---
 
@@ -296,7 +296,7 @@ final_df.show(truncate=False)
 ```
 
 **Output:**  
-![](c63e5028-d599-47cf-bdfd-088fb99e8ee0.png)
+![pyspark output7](images/pyspark%20output7.jpg)
 
 ---
 
@@ -322,7 +322,7 @@ avg_age_df.show()
 ```
 
 **Output:**  
-![](d86f37cf-2f9a-40b2-af98-0f570addb173.png)
+![pyspark output8](images/pyspark%20output8.jpg)
 
 ---
 
