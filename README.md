@@ -76,7 +76,7 @@ top_reasons_df.show(truncate=False)
 ```
 
 **Output:**  
-![pyspark output1](images/pyspark%20output1.jpg)
+![pyspark output1](Images/pyspark%20output1.jpg)
 
 ---
 
@@ -123,7 +123,7 @@ avg_duration_df.show(truncate=False)
 ```
 
 **Output:**  
-![pyspark output2](images/pyspark%20output2.jpg)
+![pyspark output2](Images/pyspark%20output2.jpg)
 
 ---
 
@@ -149,7 +149,7 @@ encounterclass_counts_df.show(truncate=False)
 ```
 
 **Output:**  
-![pyspark output3](images/pyspark%20output3.jpg)
+![pyspark output3](Images/pyspark%20output3.jpg)
 
 ---
 
@@ -180,7 +180,7 @@ payers_formatted_df.show(truncate=False)
 ```
 
 **Output:**  
-![pyspark output4](images/pyspark%20output4.jpg)
+![pyspark output4](Images/pyspark%20output4.jpg)
 
 ---
 
@@ -209,7 +209,7 @@ noinsurance_formatted_df.show(truncate=False)
 ```
 
 **Output:**  
-![pyspark output5](images/pyspark%20output5.jpg)
+![pyspark output5](Images/pyspark%20output5.jpg)
 
 ---
 
@@ -252,7 +252,7 @@ noinsurance_formatted.show(truncate=False)
 ```
 
 **Output:**  
-![pyspark output6](images/pyspark%20output6.jpg)
+![pyspark output6](Images/pyspark%20output6.jpg)
 
 ---
 
@@ -299,7 +299,7 @@ final_df.show(truncate=False)
 ```
 
 **Output:**  
-![pyspark output7](images/pyspark%20output7.jpg)
+![pyspark output7](Images/pyspark%20output7.jpg)
 
 ---
 
@@ -325,7 +325,7 @@ avg_age_df.show()
 ```
 
 **Output:**  
-![pyspark output8](images/pyspark%20output8.jpg)
+![pyspark output8](Images/pyspark%20output8.jpg)
 
 ---
 
